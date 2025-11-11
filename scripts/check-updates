@@ -1,0 +1,14 @@
+#!/bin/bash
+
+dnf_update_count=$(dnf check-update 2>/dev/null | wc -l)
+
+flatpak_updates_count=$(flatpak remote-ls --updates | wc -l)
+
+total_updates_count=$(($dnf_update_count + $flatpak_updates_count))
+
+if [[ "$total_updates_count" -gt 0 ]]; then
+  notify-send "$total_updates_count updates available."
+  echo "{\"alt\": \"hasupdate\", \"tooltip\": \"$total_updates_count updates available.\"}"
+else
+  echo "{\"alt\": \"noupdate\", \"tooltip\":\"No updates available.\"}"
+fi

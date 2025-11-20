@@ -290,6 +290,50 @@ require("lazy").setup({
 			},
 		},
 	},
+	---@type LazySpec
+	{
+		"mikavilpas/yazi.nvim",
+		version = "*", -- use the latest stable version
+		event = "VeryLazy",
+		dependencies = {
+			{ "nvim-lua/plenary.nvim", lazy = true },
+		},
+		keys = {
+			-- 👇 in this section, choose your own keymappings!
+			{
+				"<leader>-",
+				mode = { "n", "v" },
+				"<cmd>Yazi<cr>",
+				desc = "Open yazi at the current file",
+			},
+			{
+				-- Open in the current working directory
+				"<leader>cw",
+				"<cmd>Yazi cwd<cr>",
+				desc = "Open the file manager in nvim's working directory",
+			},
+			{
+				"<c-up>",
+				"<cmd>Yazi toggle<cr>",
+				desc = "Resume the last yazi session",
+			},
+		},
+		---@type YaziConfig | {}
+		opts = {
+			-- if you want to open yazi instead of netrw, see below for more info
+			open_for_directories = false,
+			keymaps = {
+				show_help = "<f1>",
+			},
+		},
+		-- 👇 if you use `open_for_directories=true`, this is recommended
+		init = function()
+			-- mark netrw as loaded so it's not loaded at all.
+			--
+			-- More details: https://github.com/mikavilpas/yazi.nvim/issues/802
+			vim.g.loaded_netrwPlugin = 1
+		end,
+	},
 
 	-- NOTE: Plugins can also be configured to run Lua code when they are loaded.
 	--
@@ -699,7 +743,7 @@ require("lazy").setup({
 				--    https://github.com/pmizio/typescript-tools.nvim
 				--
 				-- But for many setups, the LSP (`ts_ls`) will work just fine
-				-- ts_ls = {},
+				ts_ls = {},
 				--
 
 				lua_ls = {
@@ -779,13 +823,25 @@ require("lazy").setup({
 					return nil
 				else
 					return {
-						timeout_ms = 500,
+						timeout_ms = 5000,
+						lsp_fallback = true,
+						async = false,
 						lsp_format = "fallback",
 					}
 				end
 			end,
 			formatters_by_ft = {
 				lua = { "stylua" },
+				javascript = { "prettier" },
+				typescript = { "prettier" },
+				javascriptreact = { "prettier" },
+				typescriptreact = { "prettier" },
+				svelte = { "prettier" },
+				css = { "prettier" },
+				html = { "prettier" },
+				json = { "prettier" },
+				yaml = { "prettier" },
+				markdown = { "prettier" },
 				-- Conform can also run multiple formatters sequentially
 				-- python = { "isort", "black" },
 				--
@@ -913,6 +969,34 @@ require("lazy").setup({
 			-- Like many other themes, this one has different styles, and you could load
 			-- any other, such as 'tokyonight-storm', 'tokyonight-moon', or 'tokyonight-day'.
 			vim.cmd.colorscheme("nordfox")
+		end,
+	},
+	{
+		"mfussenegger/nvim-lint",
+		event = {
+			"BufReadPre",
+			"BufNewFile",
+		},
+		config = function()
+			local lint = require("lint")
+			lint.linters_by_ft = {
+				javascript = { "eslint_d" },
+				typescript = { "eslint_d" },
+				javascriptreact = { "eslint_d" },
+				typescriptreact = { "eslint_d" },
+			}
+			local lint_augroup = vim.api.nvim_create_augroup("lint", { clear = true })
+
+			vim.api.nvim_create_autocmd({ "BufEnter", "BufWrite", "InsertLeave" }, {
+				group = lint_augroup,
+				callback = function()
+					lint.try_lint()
+				end,
+			})
+
+			vim.keymap.set("n", "<leader>l", function()
+				lint.try_lint()
+			end, { desc = "Trigger linting for current file" })
 		end,
 	},
 
